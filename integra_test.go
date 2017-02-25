@@ -1,0 +1,53 @@
+package integra
+
+import "testing"
+
+func TestNewEISCPPacket(t *testing.T) {
+	expected := []byte{
+		0x49, 0x53, 0x43, 0x50,
+		0x00, 0x00, 0x00, 0x10,
+		0x00, 0x00, 0x00, 0x08,
+		0x01, 0x00, 0x00, 0x00,
+
+		0x21, 0x31, 0x50, 0x57,
+		0x52, 0x30, 0x30, 0x0a,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00}
+	result := newEISCPPacket()
+	_ = result.init("PWR00")
+	for i, b := range result {
+		if b != expected[i] {
+			t.Errorf("%v did not match expected %v at index %v", b, expected[i], i)
+		}
+	}
+
+}
+
+func TestNewEISCPPacketTooBig(t *testing.T) {
+	expected := "Message 'OVER THE HILLS' too long"
+	packet := newEISCPPacket()
+	result := packet.init("OVER THE HILLS")
+	if result == nil {
+		t.Error("expected non-nil error")
+	} else if result.Error() != expected {
+		t.Errorf("expected error %v but got %v", expected, result)
+	}
+}
+
+func TestEISCPPacketMessage(t *testing.T) {
+	expected := "PWR01"
+	packet := eISCPPacket{
+		0x49, 0x53, 0x43, 0x50,
+		0x00, 0x00, 0x00, 0x10,
+		0x00, 0x00, 0x00, 0x08,
+		0x01, 0x00, 0x00, 0x00,
+
+		0x21, 0x31, 0x50, 0x57,
+		0x52, 0x30, 0x31, 0x0a,
+		0x00, 0x00, 0x00, 0x00,
+		0x00, 0x00, 0x00, 0x00}
+	result := packet.message()
+	if result != expected {
+		t.Errorf("%v did not match %v", result, expected)
+	}
+}
