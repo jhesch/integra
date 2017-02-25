@@ -19,9 +19,9 @@ package integra
 //   with 0x1a, while the end of a packet sent to the device is marked
 //   with 0x0a.
 
-// TODO: Check integrity of inbound eISCP packets.
-
 import (
+	"bytes"
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -79,12 +79,51 @@ func (p eISCPPacket) init(message string) error {
 	return nil
 }
 
-// message extracts the ISCP message string from packet.
+// message extracts the ISCP message string from packet. The check
+// method should be called to verify the packet's integrity before
+// invoking message.
 func (p eISCPPacket) message() string {
 	dataSize := p[dataSizeIndex]
 	messageSize := dataSize - dataOverhead
 	message := p[messageOffset : messageOffset+messageSize]
 	return string(message)
+}
+
+// check performs an integrity check on the packet.
+func (p eISCPPacket) check(endOfPacket byte) error {
+	switch {
+	case p[0] != 0x49 || p[1] != 0x53 || p[2] != 0x43 || p[3] != 0x50:
+		return errors.New("first 4 header bytes do not match ISCP")
+	case p[headerSize] != 0x21 || p[headerSize+1] != 0x31:
+		return errors.New("first 2 data bytes do not match !1")
+	case p[headerSizeIndex] != headerSize:
+		return fmt.Errorf("header size %#02x is not expected size %#02x",
+			p[headerSizeIndex], headerSize)
+	case p[dataSizeIndex] > maxDataSize:
+		return fmt.Errorf("data size %#02x greater than max size %#02x",
+			p[dataSizeIndex], maxDataSize)
+	case p[headerSize+p[dataSizeIndex]-1] != endOfPacket:
+		return fmt.Errorf("end of packet %#02x did not match expected value %#02x",
+			p[headerSize+p[dataSizeIndex]-1], endOfPacket)
+	}
+	return nil
+}
+
+// debugString returns a multi-line, hex-formated string of packet's
+// bytes. Note that it can be printed in a single line using the fmt
+// package's %q format verb.
+func (p eISCPPacket) debugString() string {
+	buffer := bytes.Buffer{}
+	buffer.WriteString(fmt.Sprintf("\n"))
+	for i, b := range p {
+		buffer.WriteString(fmt.Sprintf("%#02x", b))
+		if i%4 == 3 {
+			buffer.WriteString(fmt.Sprintf("\n"))
+		} else {
+			buffer.WriteString(fmt.Sprint(" "))
+		}
+	}
+	return buffer.String()
 }
 
 // A Client is an Integra device network client.
@@ -127,6 +166,10 @@ func (c *Client) Receive() (string, string, error) {
 	n, err := c.conn.Read(c.rxbuf)
 	if err != nil {
 		return "", "", err
+	}
+	if err := c.rxbuf.check(endOfPacketRx); err != nil {
+		log.Printf("Received bad packet (%v):%v", err, c.rxbuf.debugString())
+		return "", "", errors.New("received eISCP packet failed integrity check")
 	}
 	m := c.rxbuf.message()
 	log.Printf("Received %v (%v bytes)\n", m, n)
