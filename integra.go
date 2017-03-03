@@ -165,6 +165,10 @@ func Connect(address string) (*Client, error) {
 	if err != nil {
 		return nil, err
 	}
+	// Note: since there can only be a single TCP connection to
+	// the Integra device at a time, it's acceptable to reuse
+	// transmit and receive buffers instead of creating new ones
+	// for each communication.
 	txbuf := newEISCPPacket()
 	rxbuf := make(eISCPPacket, packetSize)
 	return &Client{conn, txbuf, rxbuf, State{}}, nil
