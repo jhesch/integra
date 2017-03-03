@@ -79,14 +79,12 @@ func (p eISCPPacket) init(message string) error {
 	return nil
 }
 
-// message extracts the ISCP message string from packet. The check
-// method should be called to verify the packet's integrity before
-// invoking message.
-func (p eISCPPacket) message() string {
-	dataSize := p[dataSizeIndex]
-	messageSize := dataSize - dataOverhead
-	message := p[messageOffset : messageOffset+messageSize]
-	return string(message)
+// message extracts the ISCP message from packet. The check method
+// should be called to verify the packet's integrity before invoking
+// message.
+func (p eISCPPacket) message() *Message {
+	messageSize := p[dataSizeIndex] - dataOverhead
+	return newMessage(p[messageOffset : messageOffset+messageSize])
 }
 
 // check performs an integrity check on the packet.
@@ -126,6 +124,25 @@ func (p eISCPPacket) debugString() string {
 	return buffer.String()
 }
 
+// A Message is an ISCP message.
+type Message struct {
+	Command   string
+	Parameter string
+}
+
+// String returns the message as a string.
+func (m *Message) String() string {
+	return m.Command + m.Parameter
+}
+
+// newMessage returns a new Message from the given byte slice making
+// up the message's command and parameter.
+func newMessage(m []byte) *Message {
+	// Command is always the first three bytes of
+	// message. Parameter is the remainer (variable length).
+	return &Message{string(m[:3]), string(m[3:])}
+}
+
 // A Client is an Integra device network client.
 type Client struct {
 	conn  net.Conn
@@ -147,8 +164,8 @@ func Connect(address string) (*Client, error) {
 }
 
 // Send sends the given message to the Integra device.
-func (c *Client) Send(command, parameter string) error {
-	err := c.txbuf.init(command + parameter)
+func (c *Client) Send(m *Message) error {
+	err := c.txbuf.init(m.String())
 	if err != nil {
 		return err
 	}
@@ -156,25 +173,22 @@ func (c *Client) Send(command, parameter string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("Sent message %v%v (%v bytes)\n", command, parameter, n)
+	log.Printf("Sent message %v (%v bytes)\n", m, n)
 	return nil
 }
 
 // Receive blocks until a new message is received from the Integra
-// device, returning the message as a command / parameter pair.
-func (c *Client) Receive() (string, string, error) {
+// device and returns the message.
+func (c *Client) Receive() (*Message, error) {
 	n, err := c.conn.Read(c.rxbuf)
 	if err != nil {
-		return "", "", err
+		return nil, err
 	}
 	if err := c.rxbuf.check(endOfPacketRx); err != nil {
 		log.Printf("Received bad packet (%v):%v", err, c.rxbuf.debugString())
-		return "", "", errors.New("received eISCP packet failed integrity check")
+		return nil, errors.New("received eISCP packet failed integrity check")
 	}
-	m := c.rxbuf.message()
-	log.Printf("Received %v (%v bytes)\n", m, n)
-	// Command is always the first three bytes of
-	// message. Parameter is the remainer (variable length).
-	command, parameter := m[:3], m[3:]
-	return command, parameter, nil
+	message := c.rxbuf.message()
+	log.Printf("Received %v (%v bytes)\n", message, n)
+	return message, nil
 }

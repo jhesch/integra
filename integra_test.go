@@ -49,7 +49,7 @@ func TestEISCPPacketMessage(t *testing.T) {
 		0x52, 0x30, 0x31, 0x0a,
 		0x00, 0x00, 0x00, 0x00,
 		0x00, 0x00, 0x00, 0x00}
-	result := packet.message()
+	result := packet.message().String()
 	if result != expected {
 		t.Errorf("%v did not match %v", result, expected)
 	}
