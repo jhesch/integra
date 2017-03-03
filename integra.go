@@ -143,11 +143,18 @@ func newMessage(m []byte) *Message {
 	return &Message{string(m[:3]), string(m[3:])}
 }
 
+// State represents the known state of the Integra device. Keys are
+// ISCP message commands that map to ISCP parameter values. Each pair
+// reflects the most recently received value for the key. Example
+// key/value pair: "PWR": "01".
+type State map[string]string
+
 // A Client is an Integra device network client.
 type Client struct {
 	conn  net.Conn
 	txbuf eISCPPacket
 	rxbuf eISCPPacket
+	State State
 }
 
 // Connect establishes a connection to the Integra device and returns
@@ -159,8 +166,8 @@ func Connect(address string) (*Client, error) {
 		return nil, err
 	}
 	txbuf := newEISCPPacket()
-	rxbuf := make(eISCPPacket, 32)
-	return &Client{conn, txbuf, rxbuf}, nil
+	rxbuf := make(eISCPPacket, packetSize)
+	return &Client{conn, txbuf, rxbuf, State{}}, nil
 }
 
 // Send sends the given message to the Integra device.
@@ -190,5 +197,6 @@ func (c *Client) Receive() (*Message, error) {
 	}
 	message := c.rxbuf.message()
 	log.Printf("Received %v (%v bytes)\n", message, n)
+	c.State[message.Command] = message.Parameter
 	return message, nil
 }
