@@ -3,6 +3,8 @@ package main
 import (
 	"encoding/json"
 	"flag"
+	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 
@@ -75,16 +77,41 @@ func serveWs(client *integra.Client, w http.ResponseWriter, r *http.Request) {
 }
 
 func serveIntegra(client *integra.Client, w http.ResponseWriter, r *http.Request) {
-	state, err := json.Marshal(client.State())
-	if err != nil {
-		log.Println("Marshal failed:", err)
-		http.Error(w, "Internal server error", 500)
+	if r.Method == "GET" {
+		state, err := json.Marshal(client.State())
+		if err != nil {
+			log.Println("Marshal failed:", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_, err = w.Write(state)
+		if err != nil {
+			log.Println("Write failed:", err)
+			return
+		}
+	} else if r.Method == "POST" {
+		defer r.Body.Close()
+		b, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			log.Println("ReadAll failed:", err)
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		message, err := integra.NewMessage(b)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		err = client.Send(message)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		fmt.Fprint(w, "ok")
+	} else {
+		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
-	}
-	w.Header().Set("Content-Type", "application/json")
-	_, err = w.Write(state)
-	if err != nil {
-		log.Println("Write failed:", err)
 	}
 }
 
