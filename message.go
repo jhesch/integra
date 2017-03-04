@@ -77,9 +77,13 @@ func (p eISCPPacket) init(message string) error {
 // message extracts the ISCP message from packet. The check method
 // should be called to verify the packet's integrity before invoking
 // message.
-func (p eISCPPacket) message() *Message {
+func (p eISCPPacket) message() (*Message, error) {
 	messageSize := p[dataSizeIndex] - dataOverhead
-	return newMessage(p[messageOffset : messageOffset+messageSize])
+	m, err := NewMessage(p[messageOffset : messageOffset+messageSize])
+	if err != nil {
+		return nil, err
+	}
+	return m, nil
 }
 
 // check performs an integrity check on the packet.
@@ -130,10 +134,13 @@ func (m *Message) String() string {
 	return m.Command + m.Parameter
 }
 
-// newMessage returns a new Message from the given byte slice making
+// NewMessage returns a new Message from the given byte slice making
 // up the message's command and parameter.
-func newMessage(m []byte) *Message {
+func NewMessage(m []byte) (*Message, error) {
+	if len(m) < 4 {
+		return nil, errors.New("message is too short")
+	}
 	// Command is always the first three bytes of
 	// message. Parameter is the remainer (variable length).
-	return &Message{string(m[:3]), string(m[3:])}
+	return &Message{string(m[:3]), string(m[3:])}, nil
 }
