@@ -1,6 +1,22 @@
-// Package integra provides a client to communicate with an Integra
-// (or Onkyo) A/V receiver device using the Integra Serial Control
-// Protocol over Ethernet (eISCP).
+/*
+
+Package integra provides a client to communicate with an Integra (or
+Onkyo) A/V receiver device using the Integra Serial Control Protocol
+over Ethernet (eISCP).
+
+Example usage:
+
+  device, _ := integra.Connect(":60128")
+  client := device.NewClient()
+  message = integra.Message{"PWR", "01"}
+  client.Send(&message)
+  message, _ := integraClient.Receive()
+  fmt.Println("Got message from Integra A/V receiver:", message)
+  client.Close()
+
+See server/server.go for a working example.
+
+*/
 package integra
 
 import (

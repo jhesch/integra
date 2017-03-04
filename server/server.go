@@ -1,3 +1,36 @@
+/*
+
+Server provides a basic mobile-friendly web app to control and monitor
+an Integra device such as an A/V receiver. The web app uses WebSockets
+to display real-time changes to the device, including changes made
+elsewhere like the volume knob on the receiver or buttons on the
+remote.
+
+Server also offers a simple HTTP interface at /integra for sending
+ISCP (Integra Serial Control Protocol) commands and reading the
+current state of the device.
+
+The following examples assume this server is running on port 8080.
+
+Example commands to send ISCP power on (PWR01) and volume up (MVLUP)
+messages to the device by issuing POST requests to /integra:
+
+  $ curl :8080/integra -d PWR01
+  ok
+  $ curl :8080/integra -d MVLUP
+  ok
+
+Example command to query the Integra device state by issuing a GET
+request to /integra (returns JSON):
+
+  $ curl :8080/integra
+  {"MVL":"42","PWR":"01"}
+
+Note thath the device state reported by GET /integra is not
+necessarily complete; it is made up of the commands received from the
+Integra device since the server was started.
+
+*/
 package main
 
 import (
