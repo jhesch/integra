@@ -49,6 +49,7 @@ import (
 var (
 	httpaddr    = flag.String("httpaddr", ":8080", "HTTP listen address")
 	integraaddr = flag.String("integraaddr", ":60128", "Integra device address")
+	verbose     = flag.Bool("verbose", false, "Verbose logging")
 )
 
 func websocketRead(wsConn *websocket.Conn, integraClient *integra.Client) {
@@ -78,8 +79,10 @@ func websocketWrite(wsConn *websocket.Conn, integraClient *integra.Client) {
 	for {
 		message, err := integraClient.Receive()
 		if err != nil {
-			log.Println("Receive failed:", err)
-			log.Println("Closing websocket")
+			if *verbose {
+				log.Println("Receive failed:", err)
+				log.Println("Closing websocket")
+			}
 			_ = wsConn.WriteMessage(websocket.CloseMessage, []byte{})
 			return
 		}
