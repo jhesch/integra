@@ -8,9 +8,9 @@ Example usage:
 
   device, _ := integra.Connect(":60128")
   client := device.NewClient()
-  message = integra.Message{"PWR", "01"}
+  message := integra.Message{"PWR", "01"}
   client.Send(&message)
-  message, _ := integraClient.Receive()
+  message, _ = client.Receive()
   fmt.Println("Got message from Integra A/V receiver:", message)
   client.Close()
 
@@ -63,7 +63,7 @@ func Connect(address string) (*Device, error) {
 	// Note: since there can only be a single TCP connection to
 	// the Integra device at a time, it's acceptable to reuse
 	// transmit and receive buffers instead of creating new ones
-	// for each communication.
+	// for each message sent and received.
 	device := &Device{
 		State:   make(State),
 		conn:    conn,
@@ -118,7 +118,7 @@ func (d *Device) mainLoop() {
 				select {
 				case client.receive <- message:
 				default:
-					log.Println("Removing client", client)
+					log.Printf("Removing client %p\n", client)
 					delete(d.clients, client)
 					close(client.receive)
 				}

@@ -167,9 +167,5 @@ func main() {
 		defer client.Close()
 		serveWs(client, w, r)
 	})
-
-	err = http.ListenAndServe(*httpaddr, nil)
-	if err != nil {
-		log.Fatalln("ListenAndServe failed:", err)
-	}
+	log.Fatal(http.ListenAndServe(*httpaddr, nil))
 }
