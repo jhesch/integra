@@ -93,12 +93,19 @@ func (d *Device) mainLoop() {
 			log.Printf("Adding client %p\n", client)
 			d.clients[client] = true
 		case client := <-d.remove:
-			log.Printf("Removing client %p\n", client)
-			delete(d.clients, client)
-			// Close channel to unblock Client's Receive
-			// call (and allow the goroutine that called
-			// it to shut down).
-			close(client.receive)
+			// Make it safe to remove a client that was previously
+			// removed via the other removal path (<-d.receive
+			// below). This can happen, for example, if a client
+			// isn't set up to receive. The extra tolerance here
+			// keeps the Client interface simple.
+			if d.clients[client] {
+				log.Printf("Removing client %p\n", client)
+				delete(d.clients, client)
+				// Close channel to unblock Client's Receive
+				// call (and allow the goroutine that called
+				// it to shut down).
+				close(client.receive)
+			}
 		case request := <-d.send:
 			err := d.txbuf.init(request.message.String())
 			if err != nil {
@@ -119,9 +126,12 @@ func (d *Device) mainLoop() {
 				select {
 				case client.receive <- message:
 				default:
-					log.Printf("Removing client %p\n", client)
-					delete(d.clients, client)
-					close(client.receive)
+					if d.clients[client] {
+						log.Printf("Client %p unable to receive\n", client)
+						log.Printf("Removing client %p\n", client)
+						delete(d.clients, client)
+						close(client.receive)
+					}
 				}
 			}
 			log.Printf("Broadcast %v to %v clients\n", message, len(d.clients))
