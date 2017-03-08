@@ -7,10 +7,11 @@ elsewhere like the volume knob on the receiver or buttons on the
 remote.
 
 Server also offers a simple HTTP interface at /integra for sending
-ISCP (Integra Serial Control Protocol) commands and reading the
+ISCP (Integra Serial Control Protocol) messages and reading the
 current state of the device.
 
-The following examples assume this server is running on port 8080.
+The following examples assume this server is running on localhost port
+8080.
 
 Example commands to send ISCP power on (PWR01) and volume up (MVLUP)
 messages to the device by issuing POST requests to /integra:
@@ -20,6 +21,13 @@ messages to the device by issuing POST requests to /integra:
   $ curl :8080/integra -d MVLUP
   ok
 
+Up to 10 messages can be sent at once by separating them with newlines
+in the request body. (Note that the $'string' form causes shells like
+bash to replace occurrences of \n with newlines.) Example:
+
+  $ curl :8080/integra -d $'PWR01\nMVLUP\nSLI03'
+  ok
+
 Example command to query the Integra device state by issuing a GET
 request to /integra (returns JSON):
 
@@ -27,19 +35,30 @@ request to /integra (returns JSON):
   {"MVL":"42","PWR":"01"}
 
 Note thath the device state reported by GET /integra is not
-necessarily complete; it is made up of the commands received from the
-Integra device since the server was started.
+necessarily complete; it is made up of the messages received from the
+Integra device since the server was started. If desired values are
+missing from the reported device state, it can be useful to send a
+series of QSTN messages to populate the state:
+
+  $ curl :8080/integra
+  {}
+  $ curl :8080/integra -d $'PWRQSTN\nMVLQSTN\nSLIQSTN'
+  ok
+  $ curl :8080/integra
+  {"MVL":"42","PWR":"01","SLI":"03"}
 
 */
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 
@@ -141,15 +160,25 @@ func serveIntegra(client *integra.Client, w http.ResponseWriter, r *http.Request
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
-		message, err := integra.NewMessage(b)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
+		messages := bytes.Split(b, []byte("\n"))
+		if len(messages) > 10 {
+			http.Error(w, "Max messages (10) exceeded", http.StatusBadRequest)
 			return
 		}
-		err = client.Send(message)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
+		for i, messageBytes := range messages {
+			message, err := integra.NewMessage(messageBytes)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusBadRequest)
+				return
+			}
+			if i > 0 {
+				time.Sleep(50 * time.Millisecond)
+			}
+			err = client.Send(message)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 		}
 		fmt.Fprint(w, "ok")
 	} else {
