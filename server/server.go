@@ -166,7 +166,7 @@ func serveIntegraPost(client *integra.Client, w http.ResponseWriter, r *http.Req
 			return
 		}
 	}
-	fmt.Fprint(w, "ok")
+	fmt.Fprintln(w, "ok")
 }
 
 func serveIntegra(client *integra.Client, w http.ResponseWriter, r *http.Request) {
