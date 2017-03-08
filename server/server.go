@@ -52,10 +52,15 @@ var (
 	verbose     = flag.Bool("verbose", false, "Verbose logging")
 )
 
+// websocketRead blocks waiting for messages to arrive from the
+// websocket connection and forwards them to the Integra device.
 func websocketRead(wsConn *websocket.Conn, integraClient *integra.Client) {
 	for {
 		_, m, err := wsConn.ReadMessage()
 		if err != nil {
+			// Log errors, except for logging websocket
+			// going away errors (they happen every time a
+			// browser tab is closed).
 			if !websocket.IsCloseError(err, websocket.CloseGoingAway) {
 				log.Println("ReadMessage failed:", err)
 			}
@@ -75,6 +80,8 @@ func websocketRead(wsConn *websocket.Conn, integraClient *integra.Client) {
 	}
 }
 
+// websocketWrite blocks waiting for messages to arrive from the
+// Integra device and forwards them to the websocket connection.
 func websocketWrite(wsConn *websocket.Conn, integraClient *integra.Client) {
 	for {
 		message, err := integraClient.Receive()
