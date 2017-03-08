@@ -83,6 +83,30 @@ func Connect(address string) (*Device, error) {
 	return device, nil
 }
 
+func (d *Device) removeClient(client *Client, explicit bool) {
+	// Check the map first to make it safe to call this method for a
+	// client that was previously removed via the other removal path
+	// (explicit/non-explicit). This can happen, for example, if a
+	// client isn't set up to receive. The extra tolerance here
+	// keeps the Client interface simple.
+	if !d.clients[client] {
+		return
+	}
+	if !explicit {
+		// We didn't get here via the client's Close method. The
+		// likely case is that a message was received from the
+		// device and the client isn't set up to receive. This
+		// is a valid case since some clients only need to send
+		// and check state, so remove the client and move on.
+		log.Printf("Client %p unable to receive\n", client)
+	}
+	log.Printf("Removing client %p\n", client)
+	delete(d.clients, client)
+	// Close channel to unblock client's Receive call (and
+	// allow the goroutine that called it to shut down).
+	close(client.receive)
+}
+
 // mainLoop runs in its own goroutine and is in charge of adding and
 // removing clients and routing messages between clients and the
 // device.
@@ -93,19 +117,7 @@ func (d *Device) mainLoop() {
 			log.Printf("Adding client %p\n", client)
 			d.clients[client] = true
 		case client := <-d.remove:
-			// Make it safe to remove a client that was previously
-			// removed via the other removal path (<-d.receive
-			// below). This can happen, for example, if a client
-			// isn't set up to receive. The extra tolerance here
-			// keeps the Client interface simple.
-			if d.clients[client] {
-				log.Printf("Removing client %p\n", client)
-				delete(d.clients, client)
-				// Close channel to unblock Client's Receive
-				// call (and allow the goroutine that called
-				// it to shut down).
-				close(client.receive)
-			}
+			d.removeClient(client, true)
 		case request := <-d.send:
 			err := d.txbuf.init(request.message.String())
 			if err != nil {
@@ -126,12 +138,7 @@ func (d *Device) mainLoop() {
 				select {
 				case client.receive <- message:
 				default:
-					if d.clients[client] {
-						log.Printf("Client %p unable to receive\n", client)
-						log.Printf("Removing client %p\n", client)
-						delete(d.clients, client)
-						close(client.receive)
-					}
+					d.removeClient(client, false)
 				}
 			}
 			log.Printf("Broadcast %v to %v clients\n", message, len(d.clients))
