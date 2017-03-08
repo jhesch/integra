@@ -169,6 +169,7 @@ func (d *Device) receiveLoop() {
 		message, err := d.rxbuf.message()
 		if err != nil {
 			log.Println("message failed:", err)
+			continue
 		}
 		log.Printf("Received %v (%v bytes)\n", message, n)
 
