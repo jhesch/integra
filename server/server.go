@@ -138,6 +138,37 @@ func serveWs(client *integra.Client, w http.ResponseWriter, r *http.Request) {
 	websocketRead(conn, client)
 }
 
+func serveIntegraPost(client *integra.Client, w http.ResponseWriter, r *http.Request) {
+	defer r.Body.Close()
+	b, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		log.Println("ReadAll failed:", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	messages := bytes.Split(b, []byte("\n"))
+	if len(messages) > 10 {
+		http.Error(w, "Max messages (10) exceeded", http.StatusBadRequest)
+		return
+	}
+	for i, messageBytes := range messages {
+		message, err := integra.NewMessage(messageBytes)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+		if i > 0 {
+			time.Sleep(50 * time.Millisecond)
+		}
+		err = client.Send(message)
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+	}
+	fmt.Fprint(w, "ok")
+}
+
 func serveIntegra(client *integra.Client, w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		state, err := json.Marshal(client.State())
@@ -153,34 +184,7 @@ func serveIntegra(client *integra.Client, w http.ResponseWriter, r *http.Request
 			return
 		}
 	} else if r.Method == "POST" {
-		defer r.Body.Close()
-		b, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			log.Println("ReadAll failed:", err)
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-		messages := bytes.Split(b, []byte("\n"))
-		if len(messages) > 10 {
-			http.Error(w, "Max messages (10) exceeded", http.StatusBadRequest)
-			return
-		}
-		for i, messageBytes := range messages {
-			message, err := integra.NewMessage(messageBytes)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusBadRequest)
-				return
-			}
-			if i > 0 {
-				time.Sleep(50 * time.Millisecond)
-			}
-			err = client.Send(message)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-		}
-		fmt.Fprint(w, "ok")
+		serveIntegraPost(client, w, r)
 	} else {
 		http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
 		return
