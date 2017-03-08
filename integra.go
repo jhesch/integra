@@ -25,21 +25,22 @@ import (
 	"log"
 	"net"
 	"os"
+	"sync"
 )
 
 func init() {
 	log.SetFlags(log.LstdFlags | log.Lmicroseconds | log.Lshortfile)
 }
 
-// State represents the known state of the Integra device. Keys are
-// ISCP message commands that map to ISCP parameter values. Each pair
-// reflects the most recently received value for the key. Example
-// key:value pair: PWR:01.
-type State map[string]string
+// state represents the known state of the Integra device.
+type state struct {
+	sync.RWMutex
+	m map[string]string
+}
 
 // Device represents the Integra device, e.g. an A/V receiver.
 type Device struct {
-	State   State
+	state   state
 	conn    net.Conn
 	txbuf   eISCPPacket
 	rxbuf   eISCPPacket
@@ -65,7 +66,7 @@ func Connect(address string) (*Device, error) {
 	// transmit and receive buffers instead of creating new ones
 	// for each message sent and received.
 	device := &Device{
-		State:   make(State),
+		state:   state{m: make(map[string]string)},
 		conn:    conn,
 		txbuf:   newEISCPPacket(),
 		rxbuf:   make(eISCPPacket, packetSize),
@@ -153,7 +154,11 @@ func (d *Device) receiveLoop() {
 			log.Println("message failed:", err)
 		}
 		log.Printf("Received %v (%v bytes)\n", message, n)
-		d.State[message.Command] = message.Parameter
+
+		d.state.Lock()
+		d.state.m[message.Command] = message.Parameter
+		d.state.Unlock()
+
 		d.receive <- message
 	}
 }
@@ -197,10 +202,23 @@ func (c *Client) Receive() (*Message, error) {
 	return m, nil
 }
 
-// State returns the map representing Integra device state. Clients
-// must not write to the map.
-func (c *Client) State() State {
-	return c.device.State
+// State returns a map representing the known state of the Integra
+// device. Keys are ISCP message commands that map to ISCP parameter
+// values. Each pair reflects the most recently received value for the
+// key. Example key:value pair: PWR:01.
+//
+// To populate the state with a desired command:paremeter pair, send
+// the corresponding QSTN message (e.g., PWRQSTN) prior to calling
+// this method. Note that it may be necessary to sleep for ~50ms in
+// between.
+func (c *Client) State() map[string]string {
+	state := make(map[string]string)
+	c.device.state.RLock()
+	for k, v := range c.device.state.m {
+		state[k] = v
+	}
+	c.device.state.RUnlock()
+	return state
 }
 
 // Close removes the client Device. Client can no longer send or
