@@ -40,10 +40,10 @@ type state struct {
 
 // Device represents the Integra device, e.g. an A/V receiver.
 type Device struct {
-	state   state
 	conn    net.Conn
 	txbuf   eISCPPacket
 	rxbuf   eISCPPacket
+	state   state
 	clients map[*Client]bool
 	add     chan *Client
 	remove  chan *Client
@@ -66,10 +66,14 @@ func Connect(address string) (*Device, error) {
 	// transmit and receive buffers instead of creating new ones
 	// for each message sent and received.
 	device := &Device{
-		state:   state{m: make(map[string]string)},
-		conn:    conn,
-		txbuf:   newEISCPPacket(),
-		rxbuf:   make(eISCPPacket, packetSize),
+		conn:  conn,
+		txbuf: newEISCPPacket(),
+		rxbuf: make(eISCPPacket, packetSize),
+		// Concurrent access to state map is managed with a
+		// RWMutex.
+		state: state{m: make(map[string]string)},
+		// clients map is not thread safe and must not be
+		// accessed outside the mainLoop goroutine.
 		clients: make(map[*Client]bool),
 		add:     make(chan *Client),
 		remove:  make(chan *Client),
