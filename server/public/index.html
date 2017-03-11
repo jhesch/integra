@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<head>
+  <title>Integra</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.css">
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+  <script src="integra.js"></script>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.js"></script>
+</head>
+<body>
+  <div data-role="page" id="main">
+    <div data-role="header"><h1>Integra</h1></div>
+    <div role="main" class="ui-content">
+      <form>
+        <div align="center" class="ui-grid-a">
+          <div class="ui-block-a">
+            <label for="power">Power:</label>
+            <input type="checkbox" data-role="flipswitch" name="power" id="power" data-disabled="true">
+          </div>
+          <div class="ui-block-b">
+            <label for="mute">Mute:</label>
+            <input type="checkbox" data-role="flipswitch" name="mute" id="mute" data-disabled="true">
+          </div>
+        </div>
+        <label for="volume">Volume:</label>
+        <input type="range" name="volume" id="volume" min="0" max="100" data-highlight="true" data-disabled="true">
+        <label for="input">Input:</label>
+        <select name="input" id="input" data-disabled="true">
+          <option id="input_00" value="00">VCR/DVR</option>
+          <option id="input_01" value="01">Cab/Sat</option>
+          <option id="input_02" value="02">Game</option>
+          <option id="input_03" value="03">Aux 1</option>
+          <option id="input_04" value="04">Aux 2</option>
+          <option id="input_10" value="10">DVD</option>
+          <option id="input_23" value="23">CD</option>
+          <option id="input_24" value="24">FM</option>
+          <option id="input_25" value="25">AM</option>
+        </select>
+      </form>
+    </div>
+  </div>
+</body>
+</html>
