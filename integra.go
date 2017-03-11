@@ -88,10 +88,10 @@ func Connect(address string) (*Device, error) {
 }
 
 func (d *Device) removeClient(client *Client, explicit bool) {
-	// Check the map first to make it safe to call this method for a
-	// client that was previously removed via the other removal path
-	// (explicit/non-explicit). This can happen, for example, if a
-	// client isn't set up to receive. The extra tolerance here
+	// Check the map first to make it safe to call this method for
+	// a client that was previously removed via the other removal
+	// path (explicit/implicit). This can happen, for example, if
+	// a client isn't set up to receive. The extra tolerance here
 	// keeps the Client interface simple.
 	if !d.clients[client] {
 		return
@@ -243,8 +243,7 @@ func (c *Client) State() map[string]string {
 	return state
 }
 
-// Close removes the client Device. Client can no longer send or
-// receive messages.
+// Close removes the client Device. Client can no longer receive messages.
 func (c *Client) Close() {
 	c.device.remove <- c
 }
