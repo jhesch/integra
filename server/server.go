@@ -146,7 +146,7 @@ func serveIntegraPost(client *integra.Client, w http.ResponseWriter, r *http.Req
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	messages := bytes.Split(b, []byte("\n"))
+	messages := bytes.Split(bytes.TrimSpace(b), []byte("\n"))
 	if len(messages) > 10 {
 		http.Error(w, "Max messages (10) exceeded", http.StatusBadRequest)
 		return
