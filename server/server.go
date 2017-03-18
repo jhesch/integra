@@ -34,11 +34,11 @@ request to /integra (returns JSON):
   $ curl :8080/integra
   {"MVL":"42","PWR":"01"}
 
-Note thath the device state reported by GET /integra is not
-necessarily complete; it is made up of the messages received from the
-Integra device since the server was started. If desired values are
-missing from the reported device state, it can be useful to send a
-series of QSTN messages to populate the state:
+Note that the device state reported by GET /integra is not necessarily
+complete; it is made up of the messages received from the Integra
+device since the server was started. If desired values are missing
+from the reported device state, it can be useful to send a series of
+QSTN messages to populate the state:
 
   $ curl :8080/integra
   {}
