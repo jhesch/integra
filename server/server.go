@@ -55,9 +55,11 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -191,6 +193,49 @@ func serveIntegra(client *integra.Client, w http.ResponseWriter, r *http.Request
 	}
 }
 
+type input struct {
+	Name  string `json:"name"`
+	Value string `json:"value"`
+}
+
+type config struct {
+	Title   string   `json:"title"`
+	CSS     []string `json:"css"`
+	Scripts []string `json:"scripts"`
+	Inputs  []input  `json:"inputs"`
+}
+
+func serveRoot() {
+	// Copy server/config.json.sample to server/config.json and
+	// modify to customize web app HTML.
+	var configFile string
+	if _, err := os.Stat("server/config.json"); os.IsNotExist(err) {
+		configFile = "server/config.json.sample"
+	} else {
+		configFile = "server/config.json"
+	}
+	log.Println("Using UI config file", configFile)
+	data, err := ioutil.ReadFile(configFile)
+	if err != nil {
+		log.Fatalln("ReadFile failed:", err)
+	}
+	var cfg config
+	err = json.Unmarshal(data, &cfg)
+	if err != nil {
+		log.Fatalln("Unmarshal failed:", err)
+	}
+
+	var templ = template.Must(template.ParseFiles("server/webapp.tmpl"))
+
+	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
+		err := templ.Execute(w, cfg)
+		if err != nil {
+			log.Println("Execute failed:", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+		}
+	})
+}
+
 func main() {
 	flag.Parse()
 
@@ -199,7 +244,11 @@ func main() {
 		log.Fatalln("integra.Connect failed:", err)
 	}
 
-	http.Handle("/", http.FileServer(http.Dir("server/public")))
+	serveRoot()
+	http.Handle("/vendor/", http.FileServer(http.Dir("server")))
+	http.HandleFunc("/webapp.js", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "server/webapp.js")
+	})
 	http.HandleFunc("/integra", func(w http.ResponseWriter, r *http.Request) {
 		client := device.NewClient()
 		defer client.Close()

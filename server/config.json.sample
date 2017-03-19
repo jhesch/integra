@@ -1,0 +1,49 @@
+{
+  "title": "Integra",
+  "css": [
+    "https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.css"
+  ],
+  "scripts": [
+    "https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js",
+    "webapp.js",
+    "https://ajax.googleapis.com/ajax/libs/jquerymobile/1.4.5/jquery.mobile.min.js"
+  ],
+  "inputs": [
+    {
+      "value": "00",
+      "name": "VCR/DVR"
+    },
+    {
+      "value": "01",
+      "name": "Cab/Sat"
+    },
+    {
+      "value": "02",
+      "name": "Game"
+    },
+    {
+      "value": "03",
+      "name": "Aux 1"
+    },
+    {
+      "value": "04",
+      "name": "Aux 2"
+    },
+    {
+      "value": "10",
+      "name": "DVD"
+    },
+    {
+      "value": "23",
+      "name": "CD"
+    },
+    {
+      "value": "24",
+      "name": "FM"
+    },
+    {
+      "value": "25",
+      "name": "AM"
+    }
+  ]
+}
