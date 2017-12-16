@@ -250,8 +250,7 @@ func main() {
 		http.ServeFile(w, r, "server/webapp.js")
 	})
 	http.HandleFunc("/integra", func(w http.ResponseWriter, r *http.Request) {
-		client := device.NewClient()
-		defer client.Close()
+		client := device.NewSendOnlyClient()
 		serveIntegra(client, w, r)
 	})
 	http.HandleFunc("/ws", func(w http.ResponseWriter, r *http.Request) {

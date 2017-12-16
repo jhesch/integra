@@ -208,6 +208,12 @@ func (d *Device) NewClient() *Client {
 	return c
 }
 
+// NewSendOnlyClient returns a new Integra device client, ready to
+// send messages. Client cannot receive messages.
+func (d *Device) NewSendOnlyClient() *Client {
+	return &Client{d, nil, make(chan error)}
+}
+
 // Send sends the given message to the Integra device.
 func (c *Client) Send(m *Message) error {
 	c.device.send <- &sendRequest{m, c}
