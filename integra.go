@@ -243,7 +243,7 @@ func (c *Client) State() map[string]string {
 	return state
 }
 
-// Close removes the client Device. Client can no longer receive messages.
+// Close removes client from device. Client can no longer receive messages.
 func (c *Client) Close() {
 	c.device.remove <- c
 }

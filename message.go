@@ -141,6 +141,6 @@ func NewMessage(m []byte) (*Message, error) {
 		return nil, errors.New("message is too short")
 	}
 	// Command is always the first three bytes of
-	// message. Parameter is the remainer (variable length).
+	// message. Parameter is the remainder (variable length).
 	return &Message{string(m[:3]), string(m[3:])}, nil
 }
