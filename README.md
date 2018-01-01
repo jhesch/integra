@@ -1,7 +1,8 @@
 # integra
+
 Go [library](#library) and [web server](#server) to communicate with
-Integra (or Onkyo) A/V receivers using the Integra Serial Control Protocol
-over Ethernet (eISCP)
+Integra (or Onkyo) A/V receivers using the Integra Serial Control
+Protocol over Ethernet (eISCP)
 
 ## Library
 
@@ -10,7 +11,6 @@ Onkyo) A/V receiver device using the Integra Serial Control Protocol
 over Ethernet (eISCP).
 
 Example usage:
-
 ```
   device, _ := integra.Connect(":60128")
   client := device.NewClient()
@@ -25,12 +25,13 @@ See [server/server.go](server/server.go) for a working example.
 
 ## Server
 
-
 Server provides a basic mobile-friendly web app to control and monitor
 an Integra device such as an A/V receiver. The web app uses WebSockets
 to display real-time changes to the device, including changes made
 elsewhere like the volume knob on the receiver or buttons on the
 remote.
+
+![Web App](webapp.jpeg)
 
 Server also offers a simple HTTP interface at /integra for sending
 ISCP (Integra Serial Control Protocol) messages and reading the
@@ -41,7 +42,6 @@ The following examples assume this server is running on localhost port
 
 Example commands to send ISCP power on (PWR01) and volume up (MVLUP)
 messages to the device by issuing POST requests to /integra:
-
 ```
   $ curl :8080/integra -d PWR01
   ok
@@ -56,12 +56,14 @@ bash to replace occurrences of \n with newlines.) Example:
   $ curl :8080/integra -d $'PWR01\nMVLUP\nSLI03'
   ok
 ```
+
 Example command to query the Integra device state by issuing a GET
 request to /integra (returns JSON):
 ```
   $ curl :8080/integra
   {"MVL":"42","PWR":"01"}
 ```
+
 Note that the device state reported by GET /integra is not necessarily
 complete; it is made up of the messages received from the Integra
 device since the server was started. If desired values are missing
